@@ -4,7 +4,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { prisma } from "@framekit/db";
-import { compileTransformArgs, parseTransformSpec } from "@framekit/shared";
+import { parseTransformSpec } from "@framekit/shared";
+import { compileTransformArgs } from "@framekit/shared/compile";
 import { downloadObjectToFile, uploadFile } from "@framekit/storage";
 import { ffmpegBin, ffmpegPath, ffprobeBin, parseFfmpegTime, runCommand, runCommandStdout } from "./ffmpeg.js";
 
