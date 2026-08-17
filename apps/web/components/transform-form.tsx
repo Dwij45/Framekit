@@ -38,11 +38,10 @@ export function TransformForm({ assetId }: { assetId: string }) {
   }
 
   return (
-    <form className="transform-form" onSubmit={(e) => void onSubmit(e)}>
-      <h2 className="subhead">Transform</h2>
+    <form className="panel transform-form" onSubmit={(e) => void onSubmit(e)}>
+      <h2 className="subhead">Make a new version</h2>
       <p className="muted">
-        This queues a new job on the worker. Next.js only stores the knobs.
-        Output is a new asset (the source file stays).
+        Creates a second video. This file is not overwritten.
       </p>
       <label className="field">
         Quality
@@ -80,7 +79,7 @@ export function TransformForm({ assetId }: { assetId: string }) {
         Logo overlay
       </label>
       <button className="btn-primary" type="submit" disabled={pending}>
-        {pending ? "Queueing…" : "Run transform"}
+        {pending ? "Starting…" : "Create version"}
       </button>
       {error ? <p className="form-error">{error}</p> : null}
     </form>

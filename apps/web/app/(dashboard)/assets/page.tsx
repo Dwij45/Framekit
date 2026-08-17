@@ -1,7 +1,8 @@
+import Link from "next/link";
 import { prisma } from "@framekit/db";
 import { auth } from "@/auth";
+import { StatusPill } from "@/components/status-pill";
 import { Uploader } from "@/components/uploader";
-import Link from "next/link";
 
 export default async function AssetsPage() {
   const session = await auth();
@@ -14,22 +15,24 @@ export default async function AssetsPage() {
     : [];
 
   return (
-    <section>
-      <h1>Assets</h1>
-      <p className="lede">
-        The file goes to MinIO with a presigned URL. Next.js never holds the
-        bytes. The worker then probes, encodes a ladder, and packages HLS.
-      </p>
+    <section className="page">
+      <header className="page-head">
+        <p className="eyebrow">Studio</p>
+        <h1>Videos</h1>
+        <p className="lede">
+          Upload a clip. We store it privately, then the worker turns it into
+          a ladder of MP4s plus an HLS playlist you can play in the browser.
+        </p>
+      </header>
       <Uploader />
       {assets.length === 0 ? (
-        <p className="muted">No uploads yet.</p>
+        <p className="muted">Nothing here yet. Choose a video above.</p>
       ) : (
         <table className="data">
           <thead>
             <tr>
               <th>File</th>
               <th>Status</th>
-              <th>Type</th>
             </tr>
           </thead>
           <tbody>
@@ -38,8 +41,9 @@ export default async function AssetsPage() {
                 <td>
                   <Link href={`/assets/${asset.id}`}>{asset.fileName}</Link>
                 </td>
-                <td>{asset.status}</td>
-                <td>{asset.contentType}</td>
+                <td>
+                  <StatusPill status={asset.status} />
+                </td>
               </tr>
             ))}
           </tbody>

@@ -7,10 +7,7 @@ export default function RegisterPage() {
       <div className="auth-card">
         <p className="eyebrow">Framekit</p>
         <h1>Create account</h1>
-        <p className="lede">
-          This user will own assets and API keys later. Password is hashed
-          with bcrypt before it touches Postgres.
-        </p>
+        <p className="lede">You will own the videos, jobs, and API keys created here.</p>
         <RegisterForm />
         <p className="muted">
           Already registered? <Link href="/login">Sign in</Link>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { HlsPlayer } from "@/components/hls-player";
+import { StatusPill } from "@/components/status-pill";
 
 type Payload = {
   id: string;
@@ -82,50 +83,39 @@ export function JobPoller({ jobId }: { jobId: string }) {
 
   return (
     <div className="stack">
-      <p>
-        Status: <strong>{data.status}</strong>
-        {data.progressStage ? ` (${data.progressStage})` : ""}
-        {` · ${data.progressPct}%`}
+      <p className="inline-status">
+        <StatusPill status={data.status} />
+        <span>{data.progressPct}%</span>
       </p>
       <div className="meter" aria-label="progress">
         <span style={{ width: `${data.progressPct}%` }} />
       </div>
       {error ? <p className="form-error">{error}</p> : null}
       {data.status === "failed" ? (
-        <p className="form-error">
-          {data.errorCode}: {data.errorMessage}
-        </p>
+        <p className="form-error">{data.errorMessage}</p>
       ) : null}
       {data.canRetry ? (
         <p>
           <button className="btn-ghost" type="button" disabled={retrying} onClick={() => void retry()}>
-            {retrying ? "Re-queueing…" : "Retry job"}
+            {retrying ? "Retrying…" : "Retry"}
           </button>
         </p>
       ) : null}
       {data.status === "ready" && data.playback.hls ? (
         <>
           <HlsPlayer src={data.playback.hls} poster={data.playback.poster} />
-          <ul className="checklist">
+          <p className="muted downloads">
             {video ? (
-              <>
-                <li>Source: {Number(probe?.format?.duration ?? 0).toFixed(2)}s</li>
-                <li>
-                  {video.width}×{video.height} ({video.codec_name})
-                </li>
-              </>
+              <span>
+                {Number(probe?.format?.duration ?? 0).toFixed(1)}s · {video.width}×{video.height}
+              </span>
             ) : null}
-            {data.playback.mp4.length > 0 ? (
-              <li>
-                Progressive MP4:{" "}
-                {data.playback.mp4.map((r) => (
-                  <a key={r.label} href={r.url} style={{ marginRight: "0.75rem" }}>
-                    {r.label}
-                  </a>
-                ))}
-              </li>
-            ) : null}
-          </ul>
+            {data.playback.mp4.map((r) => (
+              <a key={r.label} href={r.url}>
+                {r.label} MP4
+              </a>
+            ))}
+          </p>
         </>
       ) : null}
     </div>

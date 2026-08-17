@@ -3,8 +3,10 @@ import { auth } from "@/auth";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { HlsPlayer } from "@/components/hls-player";
+import { StatusPill } from "@/components/status-pill";
 import { TransformForm } from "@/components/transform-form";
 import { playbackFor } from "@/lib/playback";
+import { jobTypeLabel } from "@/lib/labels";
 
 export default async function AssetDetailPage({
   params,
@@ -33,52 +35,61 @@ export default async function AssetDetailPage({
     | null;
   const video = probe?.streams?.find((s) => s.codec_type === "video");
   const playback = playbackFor(asset.id, asset.renditions);
+  const duration = Number(probe?.format?.duration ?? 0);
 
   return (
-    <section>
-      <p className="muted">
-        <Link href="/assets">Assets</Link>
+    <section className="page">
+      <p className="crumb">
+        <Link href="/assets">Videos</Link>
       </p>
-      <h1>{asset.fileName}</h1>
-      <p className="lede">
-        Status <strong>{asset.status}</strong>. Original object{" "}
-        <code>{asset.originalKey}</code>
-      </p>
+      <header className="page-head">
+        <p className="eyebrow">Video</p>
+        <h1>{asset.fileName}</h1>
+        <p className="lede inline-status">
+          <StatusPill status={asset.status} />
+          {video ? (
+            <span>
+              {duration.toFixed(1)}s · {video.width}×{video.height}
+            </span>
+          ) : (
+            <span>Waiting for the worker to inspect this file.</span>
+          )}
+        </p>
+      </header>
       {asset.errorMessage ? <p className="form-error">{asset.errorMessage}</p> : null}
       {playback.hls ? <HlsPlayer src={playback.hls} poster={playback.poster} /> : null}
-      {video ? (
-        <ul className="checklist">
-          <li>Duration: {Number(probe?.format?.duration ?? 0).toFixed(2)}s</li>
-          <li>
-            {video.width}×{video.height} {video.codec_name}
-          </li>
+      {playback.mp4.length > 0 ? (
+        <p className="muted downloads">
+          Download{" "}
           {playback.mp4.map((r) => (
-            <li key={r.label}>
-              <a href={r.url}>{r.label} MP4</a>
-            </li>
+            <a key={r.label} href={r.url}>
+              {r.label}
+            </a>
           ))}
-        </ul>
-      ) : (
-        <p className="muted">No probe data yet (job still running or failed).</p>
-      )}
+        </p>
+      ) : null}
       {asset.status === "ready" ? <TransformForm assetId={asset.id} /> : null}
-      <h2 className="subhead">Jobs</h2>
-      <ul className="checklist">
-        {asset.jobs.map((job) => (
-          <li key={job.id}>
-            <Link href={`/jobs/${job.id}`}>
-              {job.type} — {job.status} — {job.progressStage ?? "—"} ({job.progressPct}%)
-            </Link>
-          </li>
-        ))}
-        {asset.sourcedJobs.map((job) => (
-          <li key={job.id}>
-            <Link href={`/jobs/${job.id}`}>
-              transform of this file → {job.asset.fileName} ({job.status})
-            </Link>
-          </li>
-        ))}
-      </ul>
+      {asset.jobs.length + asset.sourcedJobs.length > 0 ? (
+        <>
+          <h2 className="subhead">Related jobs</h2>
+          <ul className="plain-list">
+            {asset.jobs.map((job) => (
+              <li key={job.id}>
+                <Link href={`/jobs/${job.id}`}>
+                  {jobTypeLabel(job.type)} · {job.status}
+                </Link>
+              </li>
+            ))}
+            {asset.sourcedJobs.map((job) => (
+              <li key={job.id}>
+                <Link href={`/jobs/${job.id}`}>
+                  Edit → {job.asset.fileName}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
     </section>
   );
 }

@@ -15,7 +15,9 @@ export const config = {
     "/",
     "/assets/:path*",
     "/jobs/:path*",
+    "/renders/:path*",
     "/api-keys/:path*",
+    "/webhooks/:path*",
     "/docs/:path*",
   ],
 };

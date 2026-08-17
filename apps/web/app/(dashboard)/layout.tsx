@@ -1,14 +1,6 @@
-import Link from "next/link";
 import { auth } from "@/auth";
+import { DashNav } from "@/components/dash-nav";
 import { SignOutButton } from "@/components/sign-out-button";
-
-const NAV = [
-  { href: "/", label: "Overview" },
-  { href: "/assets", label: "Assets" },
-  { href: "/jobs", label: "Jobs" },
-  { href: "/api-keys", label: "API keys" },
-  { href: "/docs", label: "Docs" },
-];
 
 export default async function DashboardLayout({
   children,
@@ -22,15 +14,9 @@ export default async function DashboardLayout({
       <aside className="dash-side">
         <div>
           <p className="brand">Framekit</p>
-          <p className="brand-sub">Video pipeline</p>
+          <p className="brand-sub">Upload. Encode. Play.</p>
         </div>
-        <nav>
-          {NAV.map((item) => (
-            <Link key={item.href} href={item.href}>
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <DashNav />
         <div className="dash-user">
           <p>{session?.user?.email}</p>
           <SignOutButton />

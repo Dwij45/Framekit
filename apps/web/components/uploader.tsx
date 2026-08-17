@@ -16,7 +16,7 @@ export function Uploader() {
 
     setError(null);
     setPending(true);
-    setMessage("Asking the API for an upload URL…");
+      setMessage("Asking for an upload slot…");
 
     try {
       const start = await fetch("/api/v1/uploads", {
@@ -39,7 +39,7 @@ export function Uploader() {
         throw new Error(startBody.error ?? "Could not start upload.");
       }
 
-      setMessage("Uploading straight to storage (not through Next.js)…");
+        setMessage("Sending the file to storage…");
       const put = await fetch(startBody.uploadUrl, {
         method: "PUT",
         headers: { "Content-Type": file.type || "video/mp4" },
@@ -49,7 +49,7 @@ export function Uploader() {
         throw new Error(`Storage rejected the file (${put.status}).`);
       }
 
-      setMessage("Telling the worker to probe and encode…");
+      setMessage("Starting encode…");
       const done = await fetch(`/api/v1/uploads/${startBody.assetId}/complete`, {
         method: "POST",
       });
@@ -70,7 +70,7 @@ export function Uploader() {
   return (
     <div className="uploader">
       <label className="btn-primary upload-label">
-        {pending ? "Working…" : "Choose a video"}
+        {pending ? "Uploading…" : "Upload a video"}
         <input
           type="file"
           accept="video/mp4,video/quicktime,video/webm,video/x-matroska"

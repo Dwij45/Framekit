@@ -8,9 +8,7 @@ export default function LoginPage() {
       <div className="auth-card">
         <p className="eyebrow">Framekit</p>
         <h1>Sign in</h1>
-        <p className="lede">
-          Phase 0: accounts only. Video upload lands in Phase 1.
-        </p>
+        <p className="lede">Use your Framekit account to upload and process video.</p>
         <Suspense fallback={<p className="muted">Loading form…</p>}>
           <LoginForm />
         </Suspense>

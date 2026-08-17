@@ -2,6 +2,7 @@ import { prisma } from "@framekit/db";
 import { auth } from "@/auth";
 import { notFound } from "next/navigation";
 import { JobPoller } from "@/components/job-poller";
+import { jobTypeLabel } from "@/lib/labels";
 import Link from "next/link";
 
 export default async function JobDetailPage({
@@ -19,18 +20,26 @@ export default async function JobDetailPage({
   });
   if (!job) notFound();
 
+  const kind = jobTypeLabel(job.type);
+  const blurb =
+    job.type === "transform"
+      ? "This edit creates a new video from knobs you set. The original file is unchanged."
+      : job.type === "compose"
+        ? "This timeline stitch creates one new video from the clips you listed."
+        : "This upload job inspects the file, encodes a quality ladder, and packages HLS.";
+
   return (
-    <section>
-      <p className="muted">
+    <section className="page">
+      <p className="crumb">
         <Link href="/jobs">Jobs</Link>
-        {" · "}
+        {" / "}
         <Link href={`/assets/${job.assetId}`}>{job.asset.fileName}</Link>
       </p>
-      <h1>Inspect job</h1>
-      <p className="lede">
-        Ingest jobs probe and encode a ladder. Transform jobs apply one
-        FFmpeg graph from dashboard knobs. This page polls every 1.5s.
-      </p>
+      <header className="page-head">
+        <p className="eyebrow">{kind}</p>
+        <h1>{job.asset.fileName}</h1>
+        <p className="lede">{blurb}</p>
+      </header>
       <JobPoller jobId={job.id} />
     </section>
   );
