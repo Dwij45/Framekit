@@ -15,4 +15,83 @@ model User {
   name         String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  assets       Asset[]
+  jobs         Job[]
+}
+
+enum AssetStatus {
+  uploading
+  ready
+  failed
+}
+
+enum JobType {
+  ingest_transcode
+}
+
+enum JobStatus {
+  queued
+  probing
+  encoding
+  packaging
+  ready
+  failed
+  canceled
+}
+
+/// Metadata for one uploaded file. Bytes live in object storage (`originalKey`).
+model Asset {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status        AssetStatus @default(uploading)
+  originalKey   String
+  fileName      String
+  contentType   String
+  byteSize      Int?
+  probeJson     Json?
+  errorMessage  String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  jobs          Job[]
+  renditions    Rendition[]
+
+  @@index([userId])
+}
+
+model Rendition {
+  id          String   @id @default(cuid())
+  assetId     String
+  asset       Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  kind        String
+  label       String
+  storageKey  String
+  mime        String
+  width       Int?
+  height      Int?
+  byteSize    Int?
+  createdAt   DateTime @default(now())
+
+  @@index([assetId])
+}
+
+/// One unit of worker work.
+model Job {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assetId        String
+  asset          Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  type           JobType
+  status         JobStatus @default(queued)
+  progressPct    Int       @default(0)
+  progressStage  String?
+  errorCode      String?
+  errorMessage   String?
+  createdAt      DateTime  @default(now())
+  startedAt      DateTime?
+  finishedAt     DateTime?
+
+  @@index([userId])
+  @@index([assetId])
 }
