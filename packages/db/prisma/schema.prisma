@@ -15,8 +15,26 @@ model User {
   name         String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  assets       Asset[]
-  jobs         Job[]
+  assets            Asset[]
+  jobs              Job[]
+  apiKeys           ApiKey[]
+  webhookEndpoints  WebhookEndpoint[]
+  usageMonths       UsageMonth[]
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  prefix     String    @unique
+  secretHash String
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  jobs       Job[]
+
+  @@index([userId])
 }
 
 enum AssetStatus {
@@ -28,6 +46,7 @@ enum AssetStatus {
 enum JobType {
   ingest_transcode
   transform
+  compose
 }
 
 enum JobStatus {
@@ -91,13 +110,63 @@ model Job {
   progressPct    Int       @default(0)
   progressStage  String?
   specJson       Json?
-  errorCode      String?
-  errorMessage   String?
-  createdAt      DateTime  @default(now())
-  startedAt      DateTime?
-  finishedAt     DateTime?
+  errorCode        String?
+  errorMessage     String?
+  idempotencyKey   String?
+  idempotencyHash  String?
+  apiKeyId         String?
+  apiKey           ApiKey?   @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+  usageRecorded    Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  startedAt        DateTime?
+  finishedAt       DateTime?
+  webhookDeliveries WebhookDelivery[]
 
+  @@unique([userId, idempotencyKey])
   @@index([userId])
   @@index([assetId])
   @@index([sourceAssetId])
+  @@index([apiKeyId])
+}
+
+model WebhookEndpoint {
+  id         String             @id @default(cuid())
+  userId     String
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url        String
+  secret     String
+  createdAt  DateTime           @default(now())
+  disabledAt DateTime?
+  deliveries WebhookDelivery[]
+
+  @@index([userId])
+}
+
+model WebhookDelivery {
+  id          String          @id @default(cuid())
+  endpointId  String
+  endpoint    WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  jobId       String
+  job         Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  event       String
+  payloadJson Json
+  statusCode  Int?
+  attempts    Int             @default(0)
+  lastError   String?
+  nextRetryAt DateTime?
+  deliveredAt DateTime?
+  createdAt   DateTime        @default(now())
+
+  @@index([endpointId])
+  @@index([jobId])
+}
+
+model UsageMonth {
+  userId      String
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  yyyymm      String
+  encodedMs   Int    @default(0)
+  uploadBytes BigInt @default(0)
+
+  @@id([userId, yyyymm])
 }
