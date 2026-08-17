@@ -1,0 +1,14 @@
+node_modules
+.next
+dist
+.env
+.env.local
+*.log
+.DS_Store
+Thumbs.db
+postgres_data
+minio_data
+apps/web/tsconfig.tsbuildinfo
+packages/db/generated
+packages/db/src/generated
+.turbo

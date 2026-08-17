@@ -1,0 +1,23 @@
+{
+  "name": "framekit",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w web",
+    "dev:worker": "npm run dev -w worker",
+    "build": "npm run build -w web",
+    "db:generate": "npm run generate -w @framekit/db",
+    "db:migrate": "npm run migrate -w @framekit/db",
+    "db:studio": "npm run studio -w @framekit/db",
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml down",
+    "infra:ps": "docker compose -f infra/docker-compose.yml ps",
+    "infra:logs": "docker compose -f infra/docker-compose.yml logs -f --tail=80"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
