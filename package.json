@@ -15,7 +15,9 @@
     "infra:up": "docker compose -f infra/docker-compose.yml up -d",
     "infra:down": "docker compose -f infra/docker-compose.yml down",
     "infra:ps": "docker compose -f infra/docker-compose.yml ps",
-    "infra:logs": "docker compose -f infra/docker-compose.yml logs -f --tail=80"
+    "infra:logs": "docker compose -f infra/docker-compose.yml logs -f --tail=80",
+    "infra:local": "powershell -NoProfile -ExecutionPolicy Bypass -File infra/local/start.ps1",
+    "infra:local:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File infra/local/stop.ps1"
   },
   "engines": {
     "node": ">=20"

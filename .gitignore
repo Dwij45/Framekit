@@ -8,6 +8,8 @@ dist
 Thumbs.db
 postgres_data
 minio_data
+infra/local/bin
+infra/local/data
 apps/web/tsconfig.tsbuildinfo
 packages/db/generated
 packages/db/src/generated
