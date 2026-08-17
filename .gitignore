@@ -14,3 +14,4 @@ apps/web/tsconfig.tsbuildinfo
 packages/db/generated
 packages/db/src/generated
 .turbo
+*.mp4
