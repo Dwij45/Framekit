@@ -1,22 +1,22 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@framekit/db";
-import { ingestQueue, transformQueue } from "@/lib/queue";
-import { requireUserId } from "@/lib/session";
+import { ingestQueue, transformQueue, composeQueue } from "@/lib/queue";
+import { requireAuth } from "@/lib/auth-request";
 
 export const runtime = "nodejs";
 
 export async function POST(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ jobId: string }> },
 ) {
-  const userId = await requireUserId();
-  if (!userId) {
+  const actor = await requireAuth(req);
+  if (!actor) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { jobId } = await ctx.params;
   const job = await prisma.job.findFirst({
-    where: { id: jobId, userId },
+    where: { id: jobId, userId: actor.userId },
     include: { asset: { include: { renditions: { select: { id: true } } } } },
   });
 
@@ -52,6 +52,8 @@ export async function POST(
 
   if (job.type === "transform") {
     await transformQueue.add("transform", { jobId: job.id });
+  } else if (job.type === "compose") {
+    await composeQueue.add("compose", { jobId: job.id });
   } else {
     await ingestQueue.add("ingest", { jobId: job.id });
   }

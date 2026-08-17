@@ -2,18 +2,18 @@ import { NextResponse } from "next/server";
 import { prisma } from "@framekit/db";
 import { presignPut } from "@framekit/storage";
 import { ALLOWED_UPLOAD_TYPES, maxUploadBytes, safeFileName } from "@framekit/shared";
-import { requireUserId } from "@/lib/session";
+import { requireAuth } from "@/lib/auth-request";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  const userId = await requireUserId();
-  if (!userId) {
+  const actor = await requireAuth(req);
+  if (!actor) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const dbUser = await prisma.user.findUnique({
-    where: { id: userId },
+    where: { id: actor.userId },
     select: { id: true },
   });
   if (!dbUser) {
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
 
   let body: { fileName?: string; contentType?: string; byteSize?: number };
   try {
-    body = await req.json();
+    body = (await req.json()) as typeof body;
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
   try {
     const asset = await prisma.asset.create({
       data: {
-        userId,
+        userId: actor.userId,
         status: "uploading",
         originalKey: "pending",
         fileName,
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
       },
     });
 
-    const originalKey = `uploads/${userId}/${asset.id}/${fileName}`;
+    const originalKey = `uploads/${actor.userId}/${asset.id}/${fileName}`;
     await prisma.asset.update({
       where: { id: asset.id },
       data: { originalKey },

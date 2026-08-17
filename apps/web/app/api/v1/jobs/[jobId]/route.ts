@@ -1,22 +1,22 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@framekit/db";
 import { playbackFor } from "@/lib/playback";
-import { requireUserId } from "@/lib/session";
+import { requireAuth } from "@/lib/auth-request";
 
 export const runtime = "nodejs";
 
 export async function GET(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ jobId: string }> },
 ) {
-  const userId = await requireUserId();
-  if (!userId) {
+  const actor = await requireAuth(req);
+  if (!actor) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { jobId } = await ctx.params;
   const job = await prisma.job.findFirst({
-    where: { id: jobId, userId },
+    where: { id: jobId, userId: actor.userId },
     include: {
       asset: { include: { renditions: true } },
     },
@@ -32,6 +32,7 @@ export async function GET(
 
   return NextResponse.json({
     id: job.id,
+    type: job.type,
     status: job.status,
     progressPct: job.progressPct,
     progressStage: job.progressStage,

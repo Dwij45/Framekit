@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@framekit/db";
 import { getObject } from "@framekit/storage";
 import { mimeForPlayback, safePlaybackRel } from "@/lib/playback";
-import { requireUserId } from "@/lib/session";
+import { requireAuth } from "@/lib/auth-request";
 
 export const runtime = "nodejs";
 
@@ -10,8 +10,8 @@ export async function GET(
   req: Request,
   ctx: { params: Promise<{ assetId: string; path: string[] }> },
 ) {
-  const userId = await requireUserId();
-  if (!userId) {
+  const actor = await requireAuth(req);
+  if (!actor) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -22,7 +22,7 @@ export async function GET(
   }
 
   const asset = await prisma.asset.findFirst({
-    where: { id: assetId, userId },
+    where: { id: assetId, userId: actor.userId },
     select: { id: true },
   });
   if (!asset) {
