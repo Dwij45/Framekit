@@ -28,9 +28,8 @@ export default async function JobDetailPage({
       </p>
       <h1>Inspect job</h1>
       <p className="lede">
-        The worker probes the file, encodes a 360/720/1080 ladder (never
-        upscales), packages HLS, and extracts a poster. This page polls every
-        1.5s while that runs.
+        Ingest jobs probe and encode a ladder. Transform jobs apply one
+        FFmpeg graph from dashboard knobs. This page polls every 1.5s.
       </p>
       <JobPoller jobId={job.id} />
     </section>

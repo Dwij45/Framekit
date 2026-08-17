@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { HlsPlayer } from "@/components/hls-player";
+import { TransformForm } from "@/components/transform-form";
 import { playbackFor } from "@/lib/playback";
 
 export default async function AssetDetailPage({
@@ -18,6 +19,7 @@ export default async function AssetDetailPage({
     where: { id: assetId, userId: session.user.id },
     include: {
       jobs: { orderBy: { createdAt: "desc" } },
+      sourcedJobs: { orderBy: { createdAt: "desc" }, include: { asset: true } },
       renditions: true,
     },
   });
@@ -59,12 +61,20 @@ export default async function AssetDetailPage({
       ) : (
         <p className="muted">No probe data yet (job still running or failed).</p>
       )}
+      {asset.status === "ready" ? <TransformForm assetId={asset.id} /> : null}
       <h2 className="subhead">Jobs</h2>
       <ul className="checklist">
         {asset.jobs.map((job) => (
           <li key={job.id}>
             <Link href={`/jobs/${job.id}`}>
-              {job.status} — {job.progressStage ?? "—"} ({job.progressPct}%)
+              {job.type} — {job.status} — {job.progressStage ?? "—"} ({job.progressPct}%)
+            </Link>
+          </li>
+        ))}
+        {asset.sourcedJobs.map((job) => (
+          <li key={job.id}>
+            <Link href={`/jobs/${job.id}`}>
+              transform of this file → {job.asset.fileName} ({job.status})
             </Link>
           </li>
         ))}
