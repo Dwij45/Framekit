@@ -17,7 +17,8 @@
     "infra:ps": "docker compose -f infra/docker-compose.yml ps",
     "infra:logs": "docker compose -f infra/docker-compose.yml logs -f --tail=80",
     "infra:local": "powershell -NoProfile -ExecutionPolicy Bypass -File infra/local/start.ps1",
-    "infra:local:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File infra/local/stop.ps1"
+    "infra:local:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File infra/local/stop.ps1",
+    "test:shared": "npm run test -w @framekit/shared"
   },
   "engines": {
     "node": ">=20"
