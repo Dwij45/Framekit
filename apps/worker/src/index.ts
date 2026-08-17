@@ -1,31 +1,34 @@
-import { config } from "dotenv";
-import { fileURLToPath } from "node:url";
-import path from "node:path";
-import Redis from "ioredis";
-
-const rootEnv = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "../../../.env");
-config({ path: rootEnv });
+import "./load-env.js";
+import { Worker } from "bullmq";
+import IORedis from "ioredis";
+import { processIngestJob } from "./ingest.js";
 
 const redisUrl = process.env.REDIS_URL ?? "redis://127.0.0.1:6379";
 
 async function main() {
-  const redis = new Redis(redisUrl, { maxRetriesPerRequest: 2 });
+  const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
 
-  redis.on("error", (err) => {
-    console.error("[worker] redis error", err.message);
+  const worker = new Worker(
+    "ingest",
+    async (job) => {
+      const jobId = String(job.data.jobId ?? job.id);
+      console.log("[worker] ingest start", jobId);
+      await processIngestJob(jobId);
+      console.log("[worker] ingest done", jobId);
+    },
+    {
+      connection,
+      concurrency: 1,
+      // Encode + HLS can run for minutes; renew the BullMQ lock while FFmpeg is still going.
+      lockDuration: 15 * 60 * 1000,
+    },
+  );
+
+  worker.on("failed", (job, err) => {
+    console.error("[worker] job failed", job?.id, err.message);
   });
 
-  await redis.ping();
-  console.log("[worker] Phase 0 stub — Redis connected. No FFmpeg jobs yet.");
-  console.log("[worker] Idle. Waiting for Phase 1 ingest queue.");
-
-  setInterval(async () => {
-    try {
-      await redis.ping();
-    } catch (err) {
-      console.error("[worker] ping failed", err);
-    }
-  }, 30_000);
+  console.log("[worker] Phase 1B–1D — listening on queue ingest (probe + encode + HLS).");
 }
 
 main().catch((err) => {
