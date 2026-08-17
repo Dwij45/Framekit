@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { compileTransformArgs } from "./compile-transform.js";
-import { parseTransformSpec } from "./transform-spec.js";
+import { compileTransformArgs } from "./compile-transform";
+import { parseTransformSpec } from "./transform-spec";
 
 test("rejects unknown keys and shell-looking quality", () => {
   assert.throws(() => parseTransformSpec({ quality: "high;rm -rf" }));

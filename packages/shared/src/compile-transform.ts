@@ -1,4 +1,4 @@
-import { QUALITY_CRF, type TransformSpec } from "./transform-spec.js";
+import { QUALITY_CRF, type TransformSpec } from "./transform-spec";
 
 export function even(n: number): number {
   return Math.max(2, Math.floor(n / 2) * 2);

@@ -51,5 +51,5 @@ export {
   parseTransformSpec,
   transformSpecSchema,
   type TransformSpec,
-} from "./transform-spec.js";
-export { compileTransformArgs, cropForAspect, even } from "./compile-transform.js";
+} from "./transform-spec";
+export { compileTransformArgs, cropForAspect, even } from "./compile-transform";

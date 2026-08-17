@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./compile": "./src/compile-transform.ts"
   },
   "scripts": {
     "test": "tsx --test src/compile-transform.test.ts"
