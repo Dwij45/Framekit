@@ -12,6 +12,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const dbUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true },
+  });
+  if (!dbUser) {
+    return NextResponse.json(
+      { error: "Session is stale. Sign out and sign in again." },
+      { status: 401 },
+    );
+  }
+
   let body: { fileName?: string; contentType?: string; byteSize?: number };
   try {
     body = await req.json();
@@ -38,28 +49,36 @@ export async function POST(req: Request) {
     );
   }
 
-  const asset = await prisma.asset.create({
-    data: {
-      userId,
-      status: "uploading",
-      originalKey: "pending",
-      fileName,
-      contentType,
-      byteSize,
-    },
-  });
+  try {
+    const asset = await prisma.asset.create({
+      data: {
+        userId,
+        status: "uploading",
+        originalKey: "pending",
+        fileName,
+        contentType,
+        byteSize,
+      },
+    });
 
-  const originalKey = `uploads/${userId}/${asset.id}/${fileName}`;
-  await prisma.asset.update({
-    where: { id: asset.id },
-    data: { originalKey },
-  });
+    const originalKey = `uploads/${userId}/${asset.id}/${fileName}`;
+    await prisma.asset.update({
+      where: { id: asset.id },
+      data: { originalKey },
+    });
 
-  const uploadUrl = await presignPut(originalKey, contentType);
+    const uploadUrl = await presignPut(originalKey, contentType);
 
-  return NextResponse.json({
-    assetId: asset.id,
-    uploadUrl,
-    objectKey: originalKey,
-  });
+    return NextResponse.json({
+      assetId: asset.id,
+      uploadUrl,
+      objectKey: originalKey,
+    });
+  } catch (err) {
+    const code = err && typeof err === "object" && "code" in err ? String((err as { code: string }).code) : "UNKNOWN";
+    return NextResponse.json(
+      { error: code === "P2003" ? "Session is stale. Sign out and sign in again." : "Could not start upload." },
+      { status: code === "P2003" ? 401 : 500 },
+    );
+  }
 }

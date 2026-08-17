@@ -28,11 +28,13 @@ export function Uploader() {
           byteSize: file.size,
         }),
       });
-      const startBody = (await start.json()) as {
-        error?: string;
-        assetId?: string;
-        uploadUrl?: string;
-      };
+      const raw = await start.text();
+      let startBody: { error?: string; assetId?: string; uploadUrl?: string };
+      try {
+        startBody = raw ? (JSON.parse(raw) as typeof startBody) : {};
+      } catch {
+        throw new Error(`Upload API returned non-JSON (${start.status}).`);
+      }
       if (!start.ok || !startBody.uploadUrl || !startBody.assetId) {
         throw new Error(startBody.error ?? "Could not start upload.");
       }
