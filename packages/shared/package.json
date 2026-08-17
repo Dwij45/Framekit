@@ -5,10 +5,12 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./compile": "./src/compile-transform.ts"
+    "./compile": "./src/compile-transform.ts",
+    "./timeline": "./src/compile-timeline.ts",
+    "./webhooks": "./src/webhook-target.ts"
   },
   "scripts": {
-    "test": "tsx --test src/compile-transform.test.ts"
+    "test": "tsx --test src/compile-transform.test.ts src/compile-timeline.test.ts src/platform.test.ts"
   },
   "dependencies": {
     "zod": "^3.25.76"
