@@ -27,6 +27,7 @@ enum AssetStatus {
 
 enum JobType {
   ingest_transcode
+  transform
 }
 
 enum JobStatus {
@@ -53,7 +54,8 @@ model Asset {
   errorMessage  String?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
-  jobs          Job[]
+  jobs          Job[]       @relation("JobOutput")
+  sourcedJobs   Job[]       @relation("JobSource")
   renditions    Rendition[]
 
   @@index([userId])
@@ -81,11 +83,14 @@ model Job {
   userId         String
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   assetId        String
-  asset          Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  asset          Asset     @relation("JobOutput", fields: [assetId], references: [id], onDelete: Cascade)
+  sourceAssetId  String?
+  sourceAsset    Asset?    @relation("JobSource", fields: [sourceAssetId], references: [id], onDelete: SetNull)
   type           JobType
   status         JobStatus @default(queued)
   progressPct    Int       @default(0)
   progressStage  String?
+  specJson       Json?
   errorCode      String?
   errorMessage   String?
   createdAt      DateTime  @default(now())
@@ -94,4 +99,5 @@ model Job {
 
   @@index([userId])
   @@index([assetId])
+  @@index([sourceAssetId])
 }
