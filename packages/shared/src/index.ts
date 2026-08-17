@@ -45,3 +45,11 @@ export function safeFileName(name: string): string {
   const cleaned = trimmed.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
   return cleaned || "upload.bin";
 }
+
+export {
+  QUALITY_CRF,
+  parseTransformSpec,
+  transformSpecSchema,
+  type TransformSpec,
+} from "./transform-spec.js";
+export { compileTransformArgs, cropForAspect, even } from "./compile-transform.js";
