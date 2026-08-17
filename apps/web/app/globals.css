@@ -196,10 +196,73 @@ h1 {
   padding: 2rem;
 }
 
+.subhead {
+  font-size: 1rem;
+  margin: 1.5rem 0 0.5rem;
+}
+
+.uploader {
+  margin: 0 0 1.5rem;
+}
+
+.upload-label input {
+  display: none;
+}
+
+.upload-label {
+  display: inline-block;
+}
+
+.meter {
+  height: 8px;
+  background: var(--line);
+  border-radius: 99px;
+  overflow: hidden;
+  max-width: 28rem;
+}
+
+.meter span {
+  display: block;
+  height: 100%;
+  background: var(--fg);
+}
+
+.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.data th,
+.data td {
+  text-align: left;
+  padding: 0.55rem 0.4rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.data th {
+  color: var(--muted);
+  font-weight: 500;
+}
+
 .checklist {
   padding-left: 1.1rem;
   color: var(--muted);
   line-height: 1.7;
+}
+
+.player {
+  display: block;
+  width: min(100%, 52rem);
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 10px;
+  margin: 0.75rem 0 1rem;
+}
+
+.stack {
+  display: grid;
+  gap: 0.75rem;
 }
 
 @media (max-width: 800px) {

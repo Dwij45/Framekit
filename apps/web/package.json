@@ -11,7 +11,10 @@
   "dependencies": {
     "@framekit/db": "*",
     "@framekit/shared": "*",
+    "@framekit/storage": "*",
     "bcryptjs": "^3.0.2",
+    "bullmq": "^5.56.4",
+    "hls.js": "^1.6.13",
     "ioredis": "^5.7.0",
     "next": "15.5.7",
     "next-auth": "5.0.0-beta.29",
