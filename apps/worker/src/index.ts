@@ -2,13 +2,16 @@ import "./load-env.js";
 import { Worker } from "bullmq";
 import IORedis from "ioredis";
 import { processIngestJob } from "./ingest.js";
+import { processTransformJob } from "./transform.js";
 
 const redisUrl = process.env.REDIS_URL ?? "redis://127.0.0.1:6379";
 
 async function main() {
-  const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
+  const lockDuration = 15 * 60 * 1000;
+  const ingestConn = new IORedis(redisUrl, { maxRetriesPerRequest: null });
+  const transformConn = new IORedis(redisUrl, { maxRetriesPerRequest: null });
 
-  const worker = new Worker(
+  const ingest = new Worker(
     "ingest",
     async (job) => {
       const jobId = String(job.data.jobId ?? job.id);
@@ -16,19 +19,28 @@ async function main() {
       await processIngestJob(jobId);
       console.log("[worker] ingest done", jobId);
     },
-    {
-      connection,
-      concurrency: 1,
-      // Encode + HLS can run for minutes; renew the BullMQ lock while FFmpeg is still going.
-      lockDuration: 15 * 60 * 1000,
-    },
+    { connection: ingestConn, concurrency: 1, lockDuration },
   );
 
-  worker.on("failed", (job, err) => {
-    console.error("[worker] job failed", job?.id, err.message);
+  const transform = new Worker(
+    "transform",
+    async (job) => {
+      const jobId = String(job.data.jobId ?? job.id);
+      console.log("[worker] transform start", jobId);
+      await processTransformJob(jobId);
+      console.log("[worker] transform done", jobId);
+    },
+    { connection: transformConn, concurrency: 1, lockDuration },
+  );
+
+  ingest.on("failed", (job, err) => {
+    console.error("[worker] ingest failed", job?.id, err.message);
+  });
+  transform.on("failed", (job, err) => {
+    console.error("[worker] transform failed", job?.id, err.message);
   });
 
-  console.log("[worker] Phase 1B–1D — listening on queue ingest (probe + encode + HLS).");
+  console.log("[worker] listening on queues ingest + transform");
 }
 
 main().catch((err) => {
