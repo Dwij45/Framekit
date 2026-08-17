@@ -13,6 +13,7 @@ import {
   runCommand,
   runCommandStdout,
 } from "./ffmpeg.js";
+import { onJobTerminal } from "./notify.js";
 
 type ProbeJson = {
   format?: { duration?: string };
@@ -316,6 +317,11 @@ export async function processIngestJob(jobId: string): Promise<void> {
         errorMessage: null,
       },
     });
+    try {
+      await onJobTerminal(jobId);
+    } catch (err) {
+      console.error("[worker] notify failed", jobId, err);
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Ingest failed";
     const code =
@@ -337,6 +343,11 @@ export async function processIngestJob(jobId: string): Promise<void> {
       where: { id: job.assetId },
       data: { status: "failed", errorMessage: message.slice(0, 1800) },
     });
+    try {
+      await onJobTerminal(jobId);
+    } catch (notifyErr) {
+      console.error("[worker] notify failed", jobId, notifyErr);
+    }
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

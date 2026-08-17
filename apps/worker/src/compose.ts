@@ -4,8 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { prisma } from "@framekit/db";
-import { parseTransformSpec } from "@framekit/shared";
-import { compileTransformArgs } from "@framekit/shared/compile";
+import { clipOutDuration, compileTimelineArgs, parseTimeline } from "@framekit/shared";
 import { downloadObjectToFile, uploadFile } from "@framekit/storage";
 import { ffmpegBin, ffmpegPath, ffprobeBin, parseFfmpegTime, runCommand, runCommandStdout } from "./ffmpeg.js";
 import { onJobTerminal } from "./notify.js";
@@ -28,19 +27,28 @@ async function setJob(
   await prisma.job.update({ where: { id: jobId }, data });
 }
 
-export async function processTransformJob(jobId: string): Promise<void> {
+async function probeFile(filePath: string): Promise<ProbeJson> {
+  const stdout = await runCommandStdout(ffprobeBin(), [
+    "-v",
+    "error",
+    "-print_format",
+    "json",
+    "-show_format",
+    "-show_streams",
+    ffmpegPath(filePath),
+  ]);
+  return JSON.parse(stdout) as ProbeJson;
+}
+
+export async function processComposeJob(jobId: string): Promise<void> {
   const job = await prisma.job.findUnique({
     where: { id: jobId },
-    include: {
-      asset: true,
-      sourceAsset: { include: { renditions: true } },
-    },
+    include: { asset: true },
   });
 
   if (!job) throw new Error(`Job ${jobId} missing`);
-  if (job.type !== "transform") return;
+  if (job.type !== "compose") return;
   if (job.status !== "queued") return;
-  if (!job.sourceAsset) throw new Error("Transform job has no source asset");
 
   await prisma.job.update({
     where: { id: jobId },
@@ -55,39 +63,61 @@ export async function processTransformJob(jobId: string): Promise<void> {
     },
   });
 
-  const spec = parseTransformSpec(job.specJson ?? {});
-  const source = job.sourceAsset;
-  const mp4Rendition = [...source.renditions]
-    .filter((r) => r.kind === "mp4")
-    .sort((a, b) => (b.height ?? 0) - (a.height ?? 0))[0];
-  const sourceKey = mp4Rendition?.storageKey ?? source.originalKey;
+  const timeline = parseTimeline(job.specJson ?? {});
+  const ids = [...new Set(timeline.clips.map((c) => c.assetId))];
+  const sources = await prisma.asset.findMany({
+    where: { id: { in: ids }, userId: job.userId },
+    include: { renditions: true },
+  });
+  const byId = new Map(sources.map((a) => [a.id, a]));
+  for (const clip of timeline.clips) {
+    if (!byId.has(clip.assetId)) {
+      throw new Error(`Clip asset ${clip.assetId} is missing or not owned by this job's user`);
+    }
+  }
 
-  const probe = source.probeJson as ProbeJson | null;
-  const video = probe?.streams?.find((s) => s.codec_type === "video");
-  const durationSec = Number(probe?.format?.duration ?? 0);
-  const srcWidth = video?.width ?? 1280;
-  const srcHeight = video?.height ?? 720;
-  const sourceHasAudio = Boolean(probe?.streams?.some((s) => s.codec_type === "audio"));
-
-  const dir = await mkdtemp(path.join(tmpdir(), "framekit-xf-"));
-  const dest = path.join(dir, "source.mp4");
+  const dir = await mkdtemp(path.join(tmpdir(), "framekit-compose-"));
   const outMp4 = path.join(dir, "out.mp4");
   const outDir = path.join(dir, "out");
+  const downloaded = new Map<string, { path: string; probe: ProbeJson }>();
 
   try {
-    await downloadObjectToFile(sourceKey, dest);
     await mkdir(outDir, { recursive: true });
 
-    const args = compileTransformArgs(spec, {
-      input: ffmpegPath(dest),
+    for (const asset of sources) {
+      const mp4Rendition = [...asset.renditions]
+        .filter((r) => r.kind === "mp4")
+        .sort((a, b) => (b.height ?? 0) - (a.height ?? 0))[0];
+      const sourceKey = mp4Rendition?.storageKey ?? asset.originalKey;
+      const dest = path.join(dir, `${asset.id}.mp4`);
+      await downloadObjectToFile(sourceKey, dest);
+      downloaded.set(asset.id, { path: dest, probe: await probeFile(dest) });
+    }
+
+    const clipPaths: string[] = [];
+    const clipHasAudio: boolean[] = [];
+    const clipDurationSec: number[] = [];
+    let estimated = 0;
+
+    for (const clip of timeline.clips) {
+      const row = downloaded.get(clip.assetId);
+      if (!row) throw new Error(`Missing download for ${clip.assetId}`);
+      clipPaths.push(ffmpegPath(row.path));
+      clipHasAudio.push(Boolean(row.probe.streams?.some((s) => s.codec_type === "audio")));
+      const durationSec = Number(row.probe.format?.duration ?? 0);
+      clipDurationSec.push(durationSec);
+      estimated += clipOutDuration(clip, durationSec);
+    }
+
+    const args = compileTimelineArgs(timeline, {
+      clipPaths,
+      clipHasAudio,
+      clipDurationSec,
       output: ffmpegPath(outMp4),
-      srcWidth,
-      srcHeight,
-      hasAudio: sourceHasAudio,
-      watermarkPath: spec.watermark ? ffmpegPath(logoPath) : undefined,
+      overlayPath: timeline.overlay ? ffmpegPath(logoPath) : undefined,
     });
 
-    const outDuration = Math.max(durationSec / (spec.speed || 1), 0.1);
+    const outDuration = Math.max(estimated, 0.1);
     let lastWrite = 0;
     let progressWrite: Promise<void> | null = null;
     await runCommand(ffmpegBin(), args, (text) => {
@@ -104,18 +134,9 @@ export async function processTransformJob(jobId: string): Promise<void> {
 
     let outProbe: ProbeJson = {};
     try {
-      const stdout = await runCommandStdout(ffprobeBin(), [
-        "-v",
-        "error",
-        "-print_format",
-        "json",
-        "-show_format",
-        "-show_streams",
-        ffmpegPath(outMp4),
-      ]);
-      outProbe = JSON.parse(stdout) as ProbeJson;
+      outProbe = await probeFile(outMp4);
     } catch {
-      outProbe = source.probeJson as ProbeJson;
+      outProbe = {};
     }
 
     await setJob(jobId, { status: "packaging", progressStage: "hls", progressPct: 80 });
@@ -149,11 +170,12 @@ export async function processTransformJob(jobId: string): Promise<void> {
     );
 
     const poster = path.join(outDir, "poster.jpg");
+    const posterSeek = Number(outProbe.format?.duration ?? 0) > 1.2 ? "1" : "0";
     try {
       await runCommand(ffmpegBin(), [
         "-y",
         "-ss",
-        durationSec > 1.2 ? "1" : "0",
+        posterSeek,
         "-i",
         ffmpegPath(outMp4),
         "-frames:v",
@@ -247,13 +269,13 @@ export async function processTransformJob(jobId: string): Promise<void> {
       console.error("[worker] notify failed", jobId, err);
     }
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Transform failed";
+    const message = err instanceof Error ? err.message : "Compose failed";
     await prisma.job.update({
       where: { id: jobId },
       data: {
         status: "failed",
         progressStage: "failed",
-        errorCode: "TRANSFORM_FAILED",
+        errorCode: "COMPOSE_FAILED",
         errorMessage: message.slice(0, 1800),
         finishedAt: new Date(),
       },
