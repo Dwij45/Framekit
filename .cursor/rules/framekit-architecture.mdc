@@ -1,0 +1,16 @@
+---
+description: Framekit architecture — Next.js API vs FFmpeg worker vs Postgres vs object storage
+alwaysApply: true
+---
+
+# Framekit architecture
+
+Follow `docs/COMPLETE_GUIDE.md` and `AGENTS.md`.
+
+- Next.js (`apps/web`) is the control plane: auth, presigned uploads, job CRUD, SSE/polling. No FFmpeg.
+- Worker (`apps/worker`) is the work plane: ffprobe, transcode, HLS, transforms, compose.
+- PostgreSQL holds metadata only (users, assets, jobs, renditions). Object storage holds bytes.
+- Redis + BullMQ is the queue. Do not keep jobs in an in-memory array.
+- Preferred local runtime is Docker Compose. If Docker Desktop hangs Windows, use `npm run infra:local` (native Postgres 5434 + Redis + MinIO). Do not install FFmpeg on the host (`ffmpeg-static` in the worker). Compose stays for later.
+
+Wrong: encode inside `app/api/**/route.ts`. Wrong: `exec(\`ffmpeg -i ${filename}\`)`. Wrong: GridFS / `bytea` for video.

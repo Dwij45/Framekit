@@ -1,0 +1,13 @@
+---
+description: Next.js App Router conventions for Framekit dashboard and API
+globs: apps/web/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Next.js in Framekit
+
+- Default Server Components. Add `"use client"` only for upload, player, progress (hooks / browser APIs).
+- Public API lives in `app/api/v1/**/route.ts` (Route Handlers) so `curl` and API keys work. Do not hide the platform API behind Server Actions.
+- Secrets stay server-side. Never `NEXT_PUBLIC_` for database, S3, or Auth.js secrets.
+- Dashboard pages may use Prisma on the server. Client components call Route Handlers; they do not import Prisma.
+- Explain why a file is a client component when you add `"use client"`.
