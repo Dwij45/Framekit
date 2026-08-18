@@ -56,7 +56,6 @@ export function TimelinePlayground({ assets }: { assets: ReadyAsset[] }) {
         throw new Error(payload.error ?? "Could not start the timeline job.");
       }
       router.push(`/jobs/${payload.jobId}`);
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not start the timeline job.");
       setPending(false);

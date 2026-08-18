@@ -6,6 +6,7 @@ import { StatusPill } from "@/components/status-pill";
 
 type Payload = {
   id: string;
+  type: string;
   status: string;
   progressPct: number;
   progressStage: string | null;
@@ -17,6 +18,8 @@ type Payload = {
   playback: {
     hls: string | null;
     poster: string | null;
+    spriteVtt: string | null;
+    captions: Array<{ lang: string; url: string }>;
     mp4: Array<{ label: string; url: string }>;
   };
 };
@@ -32,25 +35,35 @@ export function JobPoller({ jobId }: { jobId: string }) {
   useEffect(() => {
     let cancelled = false;
     let timer: number | undefined;
+    const abort = new AbortController();
 
     async function tick() {
-      const res = await fetch(`/api/v1/jobs/${jobId}`);
-      if (!res.ok) {
+      try {
+        const res = await fetch(`/api/v1/jobs/${jobId}`, {
+          cache: "no-store",
+          signal: abort.signal,
+        });
+        if (!res.ok) {
+          if (!cancelled) setError("Could not load job.");
+          return;
+        }
+        const json = (await res.json()) as Payload;
+        if (cancelled) return;
+        setError(null);
+        setData(json);
+        if (ACTIVE.has(json.status)) {
+          timer = window.setTimeout(tick, 2500);
+        }
+      } catch (err) {
+        if (cancelled || (err instanceof DOMException && err.name === "AbortError")) return;
         if (!cancelled) setError("Could not load job.");
-        return;
-      }
-      const json = (await res.json()) as Payload;
-      if (cancelled) return;
-      setError(null);
-      setData(json);
-      if (ACTIVE.has(json.status)) {
-        timer = window.setTimeout(tick, 1500);
       }
     }
 
     void tick();
     return () => {
       cancelled = true;
+      abort.abort();
       if (timer) window.clearTimeout(timer);
     };
   }, [jobId, generation]);
@@ -80,6 +93,7 @@ export function JobPoller({ jobId }: { jobId: string }) {
       }
     | null;
   const video = probe?.streams?.find((s) => s.codec_type === "video");
+  const working = ACTIVE.has(data.status);
 
   return (
     <div className="stack">
@@ -90,6 +104,9 @@ export function JobPoller({ jobId }: { jobId: string }) {
       <div className="meter" aria-label="progress">
         <span style={{ width: `${data.progressPct}%` }} />
       </div>
+      {working && data.type === "caption" ? (
+        <p className="muted">Writing subtitles. You can leave this page — the video is already playable.</p>
+      ) : null}
       {error ? <p className="form-error">{error}</p> : null}
       {data.status === "failed" ? (
         <p className="form-error">{data.errorMessage}</p>
@@ -101,9 +118,14 @@ export function JobPoller({ jobId }: { jobId: string }) {
           </button>
         </p>
       ) : null}
-      {data.status === "ready" && data.playback.hls ? (
+      {data.playback.hls ? (
         <>
-          <HlsPlayer src={data.playback.hls} poster={data.playback.poster} />
+          <HlsPlayer
+            src={data.playback.hls}
+            poster={data.playback.poster}
+            spriteVtt={data.playback.spriteVtt}
+            captions={data.playback.captions}
+          />
           <p className="muted downloads">
             {video ? (
               <span>

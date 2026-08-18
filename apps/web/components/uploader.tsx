@@ -59,7 +59,6 @@ export function Uploader() {
       }
 
       router.push(`/jobs/${doneBody.jobId}`);
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed.");
       setPending(false);

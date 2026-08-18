@@ -30,7 +30,6 @@ export function TransformForm({ assetId }: { assetId: string }) {
         throw new Error(body.error ?? "Could not start transform.");
       }
       router.push(`/jobs/${body.jobId}`);
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Transform failed.");
       setPending(false);

@@ -18,7 +18,11 @@ export async function GET(
   const job = await prisma.job.findFirst({
     where: { id: jobId, userId: actor.userId },
     include: {
-      asset: { include: { renditions: true } },
+      asset: {
+        include: {
+          renditions: { select: { kind: true, label: true } },
+        },
+      },
     },
   });
 

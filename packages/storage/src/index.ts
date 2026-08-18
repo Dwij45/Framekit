@@ -91,12 +91,13 @@ export async function uploadFile(
   return size;
 }
 
-export async function getObject(key: string, range?: string) {
+export async function getObject(key: string, range?: string, signal?: AbortSignal) {
   return getS3().send(
     new GetObjectCommand({
       Bucket: s3Bucket(),
       Key: key,
       Range: range,
     }),
+    signal ? { abortSignal: signal } : undefined,
   );
 }

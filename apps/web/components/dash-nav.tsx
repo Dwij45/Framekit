@@ -43,6 +43,7 @@ export function DashNav() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               className={isActive(pathname, item.href) ? "is-active" : undefined}
             >
               {item.label}
