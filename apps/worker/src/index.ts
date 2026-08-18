@@ -5,6 +5,7 @@ import { processIngestJob } from "./ingest.js";
 import { processTransformJob } from "./transform.js";
 import { processComposeJob } from "./compose.js";
 import { processWebhookDelivery } from "./deliver-webhook.js";
+import { processCaptionJob } from "./captions.js";
 
 const redisUrl = process.env.REDIS_URL ?? "redis://127.0.0.1:6379";
 
@@ -14,6 +15,7 @@ async function main() {
   const transformConn = new IORedis(redisUrl, { maxRetriesPerRequest: null });
   const composeConn = new IORedis(redisUrl, { maxRetriesPerRequest: null });
   const webhookConn = new IORedis(redisUrl, { maxRetriesPerRequest: null });
+  const captionConn = new IORedis(redisUrl, { maxRetriesPerRequest: null });
 
   const ingest = new Worker(
     "ingest",
@@ -59,6 +61,17 @@ async function main() {
     { connection: webhookConn, concurrency: 2, lockDuration: 60_000 },
   );
 
+  const caption = new Worker(
+    "caption",
+    async (job) => {
+      const jobId = String(job.data.jobId ?? job.id);
+      console.log("[worker] caption start", jobId);
+      await processCaptionJob(jobId);
+      console.log("[worker] caption done", jobId);
+    },
+    { connection: captionConn, concurrency: 1, lockDuration },
+  );
+
   ingest.on("failed", (job, err) => {
     console.error("[worker] ingest failed", job?.id, err.message);
   });
@@ -71,8 +84,11 @@ async function main() {
   webhook.on("failed", (job, err) => {
     console.error("[worker] webhook failed", job?.id, err.message);
   });
+  caption.on("failed", (job, err) => {
+    console.error("[worker] caption failed", job?.id, err.message);
+  });
 
-  console.log("[worker] listening on queues ingest + transform + compose + webhook");
+  console.log("[worker] listening on queues ingest + transform + compose + webhook + caption");
 }
 
 main().catch((err) => {
