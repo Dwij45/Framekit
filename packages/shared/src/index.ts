@@ -59,3 +59,15 @@ export { hashApiKey, mintApiKey, parseApiKeyToken, verifyApiKeyHash } from "./ap
 export { signWebhook, verifyWebhookSignature } from "./webhook-sign";
 export { isPrivateIPv4, isPrivateIPv6, parseWebhookUrl } from "./webhook-url";
 export { durationMsFromProbe, usageCapMs, usageMonthKey } from "./usage";
+export {
+  SPRITE_COLS,
+  SPRITE_MAX_TILES,
+  SPRITE_TILE_H,
+  SPRITE_TILE_W,
+  buildCaptionsVtt,
+  buildSpriteVtt,
+  formatVttTimestamp,
+  spritePlan,
+  type CaptionCue,
+  type SpritePlan,
+} from "./sprite";
