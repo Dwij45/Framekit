@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { HlsPlayer } from "@/components/hls-player";
 import { StatusPill } from "@/components/status-pill";
+import { CaptionButton } from "@/components/caption-button";
 import { TransformForm } from "@/components/transform-form";
 import { playbackFor } from "@/lib/playback";
 import { jobTypeLabel } from "@/lib/labels";
@@ -57,7 +58,14 @@ export default async function AssetDetailPage({
         </p>
       </header>
       {asset.errorMessage ? <p className="form-error">{asset.errorMessage}</p> : null}
-      {playback.hls ? <HlsPlayer src={playback.hls} poster={playback.poster} /> : null}
+      {playback.hls ? (
+        <HlsPlayer
+          src={playback.hls}
+          poster={playback.poster}
+          spriteVtt={playback.spriteVtt}
+          captions={playback.captions}
+        />
+      ) : null}
       {playback.mp4.length > 0 ? (
         <p className="muted downloads">
           Download{" "}
@@ -68,7 +76,12 @@ export default async function AssetDetailPage({
           ))}
         </p>
       ) : null}
-      {asset.status === "ready" ? <TransformForm assetId={asset.id} /> : null}
+      {asset.status === "ready" ? (
+        <>
+          <CaptionButton assetId={asset.id} />
+          <TransformForm assetId={asset.id} />
+        </>
+      ) : null}
       {asset.jobs.length + asset.sourcedJobs.length > 0 ? (
         <>
           <h2 className="subhead">Related jobs</h2>

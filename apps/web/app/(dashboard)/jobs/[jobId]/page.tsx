@@ -26,7 +26,9 @@ export default async function JobDetailPage({
       ? "This edit creates a new video from knobs you set. The original file is unchanged."
       : job.type === "compose"
         ? "This timeline stitch creates one new video from the clips you listed."
-        : "This upload job inspects the file, encodes a quality ladder, and packages HLS.";
+        : job.type === "caption"
+          ? "This job listens to the video and writes an English subtitle file. The picture is unchanged."
+          : "This upload job inspects the file, encodes a quality ladder, and packages HLS.";
 
   return (
     <section className="page">

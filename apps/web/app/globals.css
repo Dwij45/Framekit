@@ -172,6 +172,8 @@ h1 {
 }
 
 .dash-side {
+  position: relative;
+  z-index: 2;
   border-right: 1px solid var(--line);
   padding: 1.35rem 1rem 1.1rem;
   display: flex;
@@ -548,6 +550,39 @@ h1 {
   background: #000;
   border-radius: 10px;
   margin: 0 0 0.85rem;
+}
+
+.player-wrap {
+  position: relative;
+  width: min(100%, 46rem);
+  margin: 0 0 0.85rem;
+}
+
+.player-wrap .player {
+  width: 100%;
+  margin: 0;
+}
+
+.sprite-preview {
+  position: absolute;
+  bottom: 3.2rem;
+  pointer-events: none;
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+}
+
+.sprite-tile {
+  display: block;
+  background-repeat: no-repeat;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+}
+
+.sprite-time {
+  font-size: 0.72rem;
+  color: var(--muted);
 }
 
 .stack {
