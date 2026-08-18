@@ -8,3 +8,4 @@ const connection = new IORedis(url, { maxRetriesPerRequest: null });
 export const ingestQueue = new Queue("ingest", { connection });
 export const transformQueue = new Queue("transform", { connection });
 export const composeQueue = new Queue("compose", { connection });
+export const captionQueue = new Queue("caption", { connection });

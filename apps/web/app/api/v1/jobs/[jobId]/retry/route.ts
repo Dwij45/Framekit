@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@framekit/db";
-import { ingestQueue, transformQueue, composeQueue } from "@/lib/queue";
+import { ingestQueue, transformQueue, composeQueue, captionQueue } from "@/lib/queue";
 import { requireAuth } from "@/lib/auth-request";
 
 export const runtime = "nodejs";
@@ -25,7 +25,9 @@ export async function POST(
   }
 
   const noRenditions = job.asset.renditions.length === 0;
-  const canRetry = job.status === "failed" || (job.status === "ready" && noRenditions);
+  const canRetry =
+    job.status === "failed" ||
+    (job.type !== "caption" && job.status === "ready" && noRenditions);
   if (!canRetry) {
     return NextResponse.json(
       { error: "Only failed jobs (or 1A probe-only ready jobs) can be retried." },
@@ -45,6 +47,12 @@ export async function POST(
       finishedAt: null,
     },
   });
+
+  if (job.type === "caption") {
+    await captionQueue.add("caption", { jobId: job.id });
+    return NextResponse.json({ ok: true, jobId: job.id });
+  }
+
   await prisma.asset.update({
     where: { id: job.assetId },
     data: { status: "uploading", errorMessage: null },

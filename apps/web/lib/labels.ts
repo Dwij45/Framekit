@@ -6,6 +6,8 @@ export function jobTypeLabel(type: string): string {
       return "Edit";
     case "compose":
       return "Timeline";
+    case "caption":
+      return "Captions";
     default:
       return type;
   }

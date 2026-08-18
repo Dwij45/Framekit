@@ -3,9 +3,16 @@ type RenditionLike = { kind: string; label: string };
 export function playbackFor(assetId: string, renditions: RenditionLike[]) {
   const hasMaster = renditions.some((r) => r.kind === "hls_master");
   const hasPoster = renditions.some((r) => r.kind === "poster");
+  const hasSprite = renditions.some((r) => r.kind === "sprite_vtt");
+  const captions = renditions.filter((r) => r.kind === "captions");
   return {
     hls: hasMaster ? `/api/v1/playback/${assetId}/hls/master.m3u8` : null,
     poster: hasPoster ? `/api/v1/playback/${assetId}/poster.jpg` : null,
+    spriteVtt: hasSprite ? `/api/v1/playback/${assetId}/sprite.vtt` : null,
+    captions: captions.map((r) => ({
+      lang: r.label,
+      url: `/api/v1/playback/${assetId}/captions/${r.label}.vtt`,
+    })),
     mp4: renditions
       .filter((r) => r.kind === "mp4")
       .map((r) => ({
@@ -29,6 +36,7 @@ export function mimeForPlayback(rel: string, fallback?: string | null): string {
   if (rel.endsWith(".m3u8")) return "application/vnd.apple.mpegurl";
   if (rel.endsWith(".ts")) return "video/MP2T";
   if (rel.endsWith(".mp4")) return "video/mp4";
+  if (rel.endsWith(".vtt")) return "text/vtt";
   if (rel.endsWith(".jpg") || rel.endsWith(".jpeg")) return "image/jpeg";
   return fallback || "application/octet-stream";
 }
