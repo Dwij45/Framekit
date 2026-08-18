@@ -14,6 +14,8 @@ import {
   runCommandStdout,
 } from "./ffmpeg.js";
 import { onJobTerminal } from "./notify.js";
+import { publishSpriteSheet } from "./sprites.js";
+import { enqueueCaptionJob } from "./captions.js";
 
 type ProbeJson = {
   format?: { duration?: string };
@@ -302,6 +304,17 @@ export async function processIngestJob(jobId: string): Promise<void> {
       },
     });
 
+    try {
+      await publishSpriteSheet({
+        assetId: job.assetId,
+        input: dest,
+        durationSec: summary.durationSec,
+        workDir: outDir,
+      });
+    } catch (err) {
+      console.error("[worker] sprite failed", jobId, err);
+    }
+
     await prisma.asset.update({
       where: { id: job.assetId },
       data: { status: "ready", errorMessage: null },
@@ -321,6 +334,13 @@ export async function processIngestJob(jobId: string): Promise<void> {
       await onJobTerminal(jobId);
     } catch (err) {
       console.error("[worker] notify failed", jobId, err);
+    }
+    if (summary.hasAudio) {
+      try {
+        await enqueueCaptionJob(job.userId, job.assetId);
+      } catch (err) {
+        console.error("[worker] caption enqueue failed", jobId, err);
+      }
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Ingest failed";

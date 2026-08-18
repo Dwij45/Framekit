@@ -8,6 +8,7 @@ import { clipOutDuration, compileTimelineArgs, parseTimeline } from "@framekit/s
 import { downloadObjectToFile, uploadFile } from "@framekit/storage";
 import { ffmpegBin, ffmpegPath, ffprobeBin, parseFfmpegTime, runCommand, runCommandStdout } from "./ffmpeg.js";
 import { onJobTerminal } from "./notify.js";
+import { publishSpriteSheet } from "./sprites.js";
 
 const logoPath = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "../assets/logo.png");
 
@@ -242,6 +243,17 @@ export async function processComposeJob(jobId: string): Promise<void> {
         byteSize: posterSize,
       },
     });
+
+    try {
+      await publishSpriteSheet({
+        assetId: job.assetId,
+        input: outMp4,
+        durationSec: Number(outProbe.format?.duration ?? estimated),
+        workDir: outDir,
+      });
+    } catch (err) {
+      console.error("[worker] sprite failed", jobId, err);
+    }
 
     await prisma.asset.update({
       where: { id: job.assetId },
