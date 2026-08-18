@@ -47,6 +47,7 @@ enum JobType {
   ingest_transcode
   transform
   compose
+  caption
 }
 
 enum JobStatus {
