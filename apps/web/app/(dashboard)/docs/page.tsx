@@ -16,10 +16,14 @@ export default function DocsPage() {
       <h2>Start here</h2>
       <ol className="guide-ol">
         <li>
-          <Link href="/assets">Videos</Link> — upload an MP4 (or MOV / WebM / MKV).
+          <Link href="/assets">Videos</Link> — pick a file, set speed / crop / mute / logo / caption look, then start the job.
         </li>
         <li>
           You are sent to a <Link href="/jobs">job</Link>. Wait until status is Ready, then press play.
+        </li>
+        <li>
+          Hover the picture to preview frames. Turn on CC if captions are ready.
+          Use <strong>Generate captions</strong> if the upload had no speech job yet.
         </li>
         <li>
           Open the video. <strong>Make a new version</strong> is for one file (crop, mute, logo).
@@ -29,7 +33,7 @@ export default function DocsPage() {
         </li>
       </ol>
 
-      <h2>The three job kinds</h2>
+      <h2>The job kinds</h2>
       <table className="data">
         <thead>
           <tr>
@@ -49,6 +53,10 @@ export default function DocsPage() {
           <tr>
             <td>Timeline</td>
             <td>Concat clips you list in JSON (trim, mute, logo). Asset IDs must be yours and ready.</td>
+          </tr>
+          <tr>
+            <td>Captions</td>
+            <td>English subtitles from speech (Whisper on the worker). Sidecar VTT, not burned in.</td>
           </tr>
         </tbody>
       </table>
@@ -78,10 +86,9 @@ export default function DocsPage() {
 
       <h2>What’s next</h2>
       <p>
-        Phases 0–4 are done on this machine. The next step in the build is a{" "}
-        <strong>public deploy</strong>: managed Postgres, Redis, R2, worker on
-        Fly or Cloud Run, this app on Vercel. Done when someone can upload from
-        a phone on your URL.
+        Hover-preview sprites and captions are on this machine. The next build
+        step is still a <strong>public deploy</strong>: managed Postgres, Redis,
+        R2, worker on Fly or Cloud Run, this app on Vercel.
       </p>
       <p className="muted">
         Longer write-ups: <code>docs/USER_GUIDE.md</code>,{" "}
