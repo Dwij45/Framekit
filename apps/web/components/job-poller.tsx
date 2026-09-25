@@ -19,6 +19,7 @@ type Payload = {
     hls: string | null;
     poster: string | null;
     spriteVtt: string | null;
+    captionStyle: string | null;
     captions: Array<{ lang: string; url: string }>;
     mp4: Array<{ label: string; url: string }>;
   };
@@ -125,6 +126,7 @@ export function JobPoller({ jobId }: { jobId: string }) {
             poster={data.playback.poster}
             spriteVtt={data.playback.spriteVtt}
             captions={data.playback.captions}
+            captionStyleUrl={data.playback.captionStyle}
           />
           <p className="muted downloads">
             {video ? (
@@ -133,7 +135,7 @@ export function JobPoller({ jobId }: { jobId: string }) {
               </span>
             ) : null}
             {data.playback.mp4.map((r) => (
-              <a key={r.label} href={r.url}>
+              <a key={r.label} href={`${r.url}?download=1`}>
                 {r.label} MP4
               </a>
             ))}

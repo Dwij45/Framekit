@@ -52,7 +52,7 @@ export function TransformForm({ assetId }: { assetId: string }) {
       </label>
       <label className="field">
         Aspect
-        <select name="aspect" defaultValue="9:16">
+        <select name="aspect" defaultValue="">
           <option value="">Keep source</option>
           <option value="16:9">16:9</option>
           <option value="9:16">9:16</option>
@@ -70,11 +70,11 @@ export function TransformForm({ assetId }: { assetId: string }) {
         </select>
       </label>
       <label className="check">
-        <input type="checkbox" name="mute" defaultChecked />
+        <input type="checkbox" name="mute" />
         Mute
       </label>
       <label className="check">
-        <input type="checkbox" name="watermark" defaultChecked />
+        <input type="checkbox" name="watermark" />
         Logo overlay
       </label>
       <button className="btn-primary" type="submit" disabled={pending}>
