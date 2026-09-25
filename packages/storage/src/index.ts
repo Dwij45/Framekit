@@ -1,8 +1,11 @@
 import {
   CreateBucketCommand,
+  DeleteObjectCommand,
+  DeleteObjectsCommand,
   GetObjectCommand,
   HeadBucketCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -91,6 +94,24 @@ export async function uploadFile(
   return size;
 }
 
+export async function uploadBytes(
+  key: string,
+  body: Buffer | string,
+  contentType: string,
+): Promise<number> {
+  const buf = typeof body === "string" ? Buffer.from(body, "utf8") : body;
+  await getS3().send(
+    new PutObjectCommand({
+      Bucket: s3Bucket(),
+      Key: key,
+      Body: buf,
+      ContentType: contentType,
+      ContentLength: buf.length,
+    }),
+  );
+  return buf.length;
+}
+
 export async function getObject(key: string, range?: string, signal?: AbortSignal) {
   return getS3().send(
     new GetObjectCommand({
@@ -100,4 +121,43 @@ export async function getObject(key: string, range?: string, signal?: AbortSigna
     }),
     signal ? { abortSignal: signal } : undefined,
   );
+}
+
+export async function deleteObjectKey(key: string): Promise<void> {
+  if (!key || key === "pending") return;
+  await getS3().send(
+    new DeleteObjectCommand({
+      Bucket: s3Bucket(),
+      Key: key,
+    }),
+  );
+}
+
+export async function deletePrefix(prefix: string): Promise<void> {
+  if (!prefix) return;
+  const Bucket = s3Bucket();
+  const client = getS3();
+  let token: string | undefined;
+  do {
+    const listed = await client.send(
+      new ListObjectsV2Command({
+        Bucket,
+        Prefix: prefix,
+        ContinuationToken: token,
+      }),
+    );
+    const objects = (listed.Contents ?? [])
+      .map((obj) => obj.Key)
+      .filter((key): key is string => Boolean(key))
+      .map((Key) => ({ Key }));
+    if (objects.length > 0) {
+      await client.send(
+        new DeleteObjectsCommand({
+          Bucket,
+          Delete: { Objects: objects, Quiet: true },
+        }),
+      );
+    }
+    token = listed.IsTruncated ? listed.NextContinuationToken : undefined;
+  } while (token);
 }
