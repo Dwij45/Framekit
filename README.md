@@ -44,22 +44,22 @@ Stop native infra: `npm run infra:local:stop`. Compose: `npm run infra:up` / `in
 
 Template: [`.env.example`](.env.example). **Never commit** real `.env` / `.env.local`.
 
-| Variable | Default / example | Secret? | Notes |
-| --- | --- | --- | --- |
-| `DATABASE_URL` | `postgresql://framekit:framekit@127.0.0.1:5434/framekit` | yes | Native local = **5434**; Compose = **5433** |
-| `REDIS_URL` | `redis://localhost:6379` | yes in prod | BullMQ + health |
-| `S3_ENDPOINT` | `http://localhost:9000` | — | MinIO locally |
-| `S3_REGION` | `us-east-1` | — | |
-| `S3_BUCKET` | `framekit` | — | |
-| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | `framekit` / `framekitsecret` | yes | MinIO root user locally |
-| `S3_FORCE_PATH_STYLE` | `true` | — | Required for MinIO |
-| `NEXTAUTH_URL` | `http://localhost:3000` | — | Auth.js base URL |
-| `NEXTAUTH_SECRET` / `AUTH_SECRET` | (empty in example) | **yes** | Session signing |
-| `FFMPEG_PATH` | `ffmpeg` | — | Placeholder; worker uses `ffmpeg-static` when this is `ffmpeg` |
-| `PROBE_MAX_DURATION_SEC` | `600` | — | Reject longer sources |
-| `PROBE_MAX_BYTES` | `524288000` (~500 MB) | — | Upload + probe size cap |
-| `USAGE_CAP_MINUTES` | `120` | — | Monthly encoded-minute cap; `≤0` disables |
-| `FRAMEKIT_LIVE` | unset | — | Set `1` to mint `fk_live_…` keys instead of `fk_test_…` |
+| Variable                          | Default / example                                        | Secret?     | Notes                                                          |
+| --------------------------------- | -------------------------------------------------------- | ----------- | -------------------------------------------------------------- |
+| `DATABASE_URL`                    | `postgresql://framekit:framekit@127.0.0.1:5434/framekit` | yes         | Native local = **5434**; Compose = **5433**                    |
+| `REDIS_URL`                       | `redis://localhost:6379`                                 | yes in prod | BullMQ + health                                                |
+| `S3_ENDPOINT`                     | `http://localhost:9000`                                  | —           | MinIO locally                                                  |
+| `S3_REGION`                       | `us-east-1`                                              | —           |                                                                |
+| `S3_BUCKET`                       | `framekit`                                               | —           |                                                                |
+| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | `framekit` / `framekitsecret`                            | yes         | MinIO root user locally                                        |
+| `S3_FORCE_PATH_STYLE`             | `true`                                                   | —           | Required for MinIO                                             |
+| `NEXTAUTH_URL`                    | `http://localhost:3000`                                  | —           | Auth.js base URL                                               |
+| `NEXTAUTH_SECRET` / `AUTH_SECRET` | (empty in example)                                       | **yes**     | Session signing                                                |
+| `FFMPEG_PATH`                     | `ffmpeg`                                                 | —           | Placeholder; worker uses `ffmpeg-static` when this is `ffmpeg` |
+| `PROBE_MAX_DURATION_SEC`          | `600`                                                    | —           | Reject longer sources                                          |
+| `PROBE_MAX_BYTES`                 | `524288000` (~500 MB)                                    | —           | Upload + probe size cap                                        |
+| `USAGE_CAP_MINUTES`               | `120`                                                    | —           | Monthly encoded-minute cap; `≤0` disables                      |
+| `FRAMEKIT_LIVE`                   | unset                                                    | —           | Set `1` to mint `fk_live_…` keys instead of `fk_test_…`        |
 
 Who reads what: root `.env` → worker; `apps/web/.env.local` → Next (does **not** load root `.env`); `packages/db/.env` → Prisma CLI.
 
@@ -91,15 +91,15 @@ Other routes (same auth): `POST /api/v1/assets/:id/transforms`, `POST /api/v1/re
 
 ## Architecture
 
-| Path | Why it exists |
-| --- | --- |
-| `apps/web` | Control plane: Auth.js, dashboard, `app/api/v1/**` Route Handlers. No FFmpeg. |
-| `apps/worker` | Work plane: BullMQ consumers; `spawn(ffmpeg, argv)` for probe/encode/HLS/transforms/compose/sprites/captions; webhook delivery. |
-| `packages/db` | Prisma schema + client (users, assets, jobs, keys, webhooks, usage). |
-| `packages/shared` | Zod specs + FFmpeg argv compilers + API-key/webhook helpers (unit-tested). |
-| `packages/storage` | Presign / get / put / delete against S3-compatible storage. |
-| `infra/docker-compose.yml` | Postgres, Redis, MinIO. |
-| `infra/local/` | Native Windows stand-in (`start.ps1`, seed, bucket). |
+| Path                       | Why it exists                                                                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web`                 | Control plane: Auth.js, dashboard, `app/api/v1/**` Route Handlers. No FFmpeg.                                                   |
+| `apps/worker`              | Work plane: BullMQ consumers; `spawn(ffmpeg, argv)` for probe/encode/HLS/transforms/compose/sprites/captions; webhook delivery. |
+| `packages/db`              | Prisma schema + client (users, assets, jobs, keys, webhooks, usage).                                                            |
+| `packages/shared`          | Zod specs + FFmpeg argv compilers + API-key/webhook helpers (unit-tested).                                                      |
+| `packages/storage`         | Presign / get / put / delete against S3-compatible storage.                                                                     |
+| `infra/docker-compose.yml` | Postgres, Redis, MinIO.                                                                                                         |
+| `infra/local/`             | Native Windows stand-in (`start.ps1`, seed, bucket).                                                                            |
 
 ## Limits and threat model
 
