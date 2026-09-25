@@ -70,7 +70,7 @@ export async function GET(
 
   const asset = await prisma.asset.findFirst({
     where: { id: assetId, userId: actor.userId },
-    select: { id: true },
+    select: { id: true, fileName: true },
   });
   if (!asset) {
     return NextResponse.json({ error: "Asset not found" }, { status: 404 });
@@ -94,6 +94,13 @@ export async function GET(
     }
     if (obj.ContentRange) {
       headers.set("Content-Range", obj.ContentRange);
+    }
+    const asDownload = new URL(req.url).searchParams.has("download");
+    if (asDownload && !range) {
+      const leaf = rel.split("/").pop() ?? "download";
+      const safe = (asset.fileName || "video").replace(/["\\]/g, "_");
+      const name = rel.includes("/mp4/") ? `${safe.replace(/\.[^.]+$/, "")}-${leaf}` : leaf;
+      headers.set("Content-Disposition", `attachment; filename="${name}"`);
     }
 
     return new NextResponse(toClientStream(obj.Body, req.signal), {
