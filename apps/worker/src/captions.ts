@@ -2,8 +2,8 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { prisma } from "@framekit/db";
-import { buildCaptionsVtt, durationMsFromProbe, type CaptionCue } from "@framekit/shared";
-import { downloadObjectToFile, uploadFile } from "@framekit/storage";
+import { buildCaptionsVtt, durationMsFromProbe, parseCaptionStyle, type CaptionCue, type CaptionStyle } from "@framekit/shared";
+import { downloadObjectToFile, uploadBytes, uploadFile } from "@framekit/storage";
 import { ffmpegBin, ffmpegPath, runCommand } from "./ffmpeg.js";
 import { onJobTerminal } from "./notify.js";
 import { captionQueue } from "./queues.js";
@@ -35,6 +35,26 @@ export function decodeMonoWav(buf: Buffer): { raw: Float32Array; sampling_rate: 
 function whisperCacheDir(): string {
   const base = process.env.LOCALAPPDATA ?? process.env.HOME ?? tmpdir();
   return path.join(base, "framekit", "whisper");
+}
+
+export async function publishCaptionStyle(assetId: string, input: unknown): Promise<CaptionStyle> {
+  const style = parseCaptionStyle(input);
+  const key = `assets/${assetId}/captions/style.json`;
+  const size = await uploadBytes(key, JSON.stringify(style), "application/json");
+  await prisma.rendition.deleteMany({
+    where: { assetId, kind: "caption_style" },
+  });
+  await prisma.rendition.create({
+    data: {
+      assetId,
+      kind: "caption_style",
+      label: "style",
+      storageKey: key,
+      mime: "application/json",
+      byteSize: size,
+    },
+  });
+  return style;
 }
 
 export async function enqueueCaptionJob(userId: string, assetId: string): Promise<string> {

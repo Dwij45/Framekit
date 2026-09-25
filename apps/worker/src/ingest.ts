@@ -2,9 +2,10 @@ import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { prisma } from "@framekit/db";
+import { compileLadderArgs, maxDurationSec, parseIngestSpec, pickLadder } from "@framekit/shared";
 import { downloadObjectToFile, uploadFile } from "@framekit/storage";
-import { maxDurationSec, pickLadder } from "@framekit/shared";
 import {
   ffmpegBin,
   ffmpegPath,
@@ -15,7 +16,9 @@ import {
 } from "./ffmpeg.js";
 import { onJobTerminal } from "./notify.js";
 import { publishSpriteSheet } from "./sprites.js";
-import { enqueueCaptionJob } from "./captions.js";
+import { enqueueCaptionJob, publishCaptionStyle } from "./captions.js";
+
+const logoPath = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "../assets/logo.png");
 
 type ProbeJson = {
   format?: { duration?: string };
@@ -114,7 +117,8 @@ export async function processIngestJob(jobId: string): Promise<void> {
       data: { probeJson: probe as object, errorMessage: null },
     });
 
-    const rungs = pickLadder(summary.height || 720);
+    const spec = parseIngestSpec(job.specJson ?? {});
+    const rungs = pickLadder(summary.height || 720, spec.maxHeight);
     await mkdir(outDir, { recursive: true });
 
     const duration = Math.max(summary.durationSec, 0.1);
@@ -131,30 +135,17 @@ export async function processIngestJob(jobId: string): Promise<void> {
 
       let lastWrite = 0;
       let progressWrite: Promise<void> | null = null;
-      const audioArgs = summary.hasAudio ? ["-c:a", "aac", "-b:a", "128k"] : ["-an"];
       await runCommand(
         ffmpegBin(),
-        [
-          "-y",
-          "-i",
-          ffmpegPath(dest),
-          "-vf",
-          `scale=-2:${rung.height}`,
-          "-c:v",
-          "libx264",
-          "-preset",
-          "fast",
-          "-crf",
-          "23",
-          "-pix_fmt",
-          "yuv420p",
-          "-fps_mode",
-          "cfr",
-          ...audioArgs,
-          "-movflags",
-          "+faststart",
-          ffmpegPath(mp4),
-        ],
+        compileLadderArgs(spec, {
+          input: ffmpegPath(dest),
+          output: ffmpegPath(mp4),
+          srcWidth: summary.width,
+          srcHeight: summary.height,
+          height: rung.height,
+          hasAudio: summary.hasAudio,
+          watermarkPath: spec.watermark ? ffmpegPath(logoPath) : undefined,
+        }),
         (text) => {
           const t = parseFfmpegTime(text);
           if (t == null) return;
@@ -335,8 +326,9 @@ export async function processIngestJob(jobId: string): Promise<void> {
     } catch (err) {
       console.error("[worker] notify failed", jobId, err);
     }
-    if (summary.hasAudio) {
+    if (summary.hasAudio && spec.captions) {
       try {
+        await publishCaptionStyle(job.assetId, spec.captionStyle);
         await enqueueCaptionJob(job.userId, job.assetId);
       } catch (err) {
         console.error("[worker] caption enqueue failed", jobId, err);
