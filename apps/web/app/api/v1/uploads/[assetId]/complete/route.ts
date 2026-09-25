@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@framekit/db";
-import { usageMonthKey } from "@framekit/shared";
+import { parseIngestSpec, usageMonthKey } from "@framekit/shared";
 import { headObject } from "@framekit/storage";
 import { ingestQueue } from "@/lib/queue";
 import { assertUnderUsageCap, findIdempotentJob, requireAuth, readJsonWithIdempotency } from "@/lib/auth-request";
@@ -19,10 +19,12 @@ export async function POST(
 
   let idempotencyKey: string | null = null;
   let bodyHash: string;
+  let spec;
   try {
     const parsed = await readJsonWithIdempotency(req);
     idempotencyKey = parsed.idempotencyKey;
     bodyHash = parsed.bodyHash;
+    spec = parseIngestSpec(parsed.body);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Invalid request";
     return NextResponse.json({ error: message }, { status: 400 });
@@ -83,6 +85,7 @@ export async function POST(
     userId: actor.userId,
     assetId: asset.id,
     type: "ingest_transcode",
+    specJson: spec,
     apiKeyId: actor.apiKeyId,
     idempotencyKey,
     bodyHash,
