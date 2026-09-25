@@ -10,7 +10,7 @@
     "./webhooks": "./src/webhook-target.ts"
   },
   "scripts": {
-    "test": "tsx --test src/compile-transform.test.ts src/compile-timeline.test.ts src/platform.test.ts src/sprite.test.ts"
+    "test": "tsx --test src/compile-transform.test.ts src/compile-timeline.test.ts src/platform.test.ts src/sprite.test.ts src/ingest-spec.test.ts"
   },
   "dependencies": {
     "zod": "^3.25.76"

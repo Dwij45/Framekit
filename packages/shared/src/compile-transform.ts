@@ -1,4 +1,5 @@
 import { QUALITY_CRF, type TransformSpec } from "./transform-spec";
+import type { IngestSpec } from "./ingest-spec";
 
 export function even(n: number): number {
   return Math.max(2, Math.floor(n / 2) * 2);
@@ -55,6 +56,60 @@ export function compileTransformArgs(
   },
 ): string[] {
   const vf = videoFilters(spec, ctx.srcWidth, ctx.srcHeight).join(",");
+  const crf = String(QUALITY_CRF[spec.quality]);
+  const wantWm = Boolean(spec.watermark) && Boolean(ctx.watermarkPath);
+  const args: string[] = ["-y", "-i", ctx.input];
+
+  if (wantWm && ctx.watermarkPath) {
+    const pos = spec.watermark === false ? { x: 24, y: 24 } : spec.watermark;
+    args.push("-i", ctx.watermarkPath);
+    args.push(
+      "-filter_complex",
+      `[0:v]${vf}[base];[base][1:v]overlay=${pos.x}:${pos.y}:format=auto[vout]`,
+    );
+    args.push("-map", "[vout]");
+  } else {
+    args.push("-vf", vf);
+  }
+
+  args.push("-c:v", "libx264", "-preset", "fast", "-crf", crf, "-pix_fmt", "yuv420p", "-fps_mode", "cfr");
+
+  const audioOut = ctx.hasAudio && !spec.mute;
+  if (!audioOut) {
+    args.push("-an");
+  } else if (spec.speed !== 1) {
+    args.push("-c:a", "aac", "-b:a", "128k", "-filter:a", `atempo=${spec.speed}`);
+    if (wantWm) args.push("-map", "0:a");
+  } else {
+    args.push("-c:a", "aac", "-b:a", "128k");
+    if (wantWm) args.push("-map", "0:a");
+  }
+
+  args.push("-movflags", "+faststart", ctx.output);
+  return args;
+}
+
+export function compileLadderArgs(
+  spec: IngestSpec,
+  ctx: {
+    input: string;
+    output: string;
+    srcWidth: number;
+    srcHeight: number;
+    height: number;
+    hasAudio: boolean;
+    watermarkPath?: string;
+  },
+): string[] {
+  const parts: string[] = [];
+  if (spec.aspect) {
+    const crop = cropForAspect(ctx.srcWidth, ctx.srcHeight, spec.aspect);
+    if (crop) parts.push(crop);
+  }
+  if (spec.speed !== 1) parts.push(`setpts=PTS/${spec.speed}`);
+  parts.push(`scale=-2:${even(ctx.height)}`);
+  parts.push("format=yuv420p");
+  const vf = parts.join(",");
   const crf = String(QUALITY_CRF[spec.quality]);
   const wantWm = Boolean(spec.watermark) && Boolean(ctx.watermarkPath);
   const args: string[] = ["-y", "-i", ctx.input];

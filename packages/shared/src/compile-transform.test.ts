@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { compileTransformArgs } from "./compile-transform";
+import { compileLadderArgs, compileTransformArgs } from "./compile-transform";
+import { parseIngestSpec } from "./ingest-spec";
 import { parseTransformSpec } from "./transform-spec";
 
 test("rejects unknown keys and shell-looking quality", () => {
@@ -36,4 +37,20 @@ test("watermark overlay uses numeric x/y only", () => {
   const fc = args[args.indexOf("-filter_complex") + 1];
   assert.match(fc, /overlay=16:32/);
   assert.equal(args[args.indexOf("-i") + 3], "/opt/logo.png");
+});
+
+test("ladder argv applies speed and never shells the filename", () => {
+  const spec = parseIngestSpec({ speed: 1.5, quality: "small", mute: true });
+  const args = compileLadderArgs(spec, {
+    input: "in;rm.mp4",
+    output: "out.mp4",
+    srcWidth: 1920,
+    srcHeight: 1080,
+    height: 720,
+    hasAudio: true,
+  });
+  assert.equal(args[args.indexOf("-i") + 1], "in;rm.mp4");
+  assert.match(args[args.indexOf("-vf") + 1], /setpts=PTS\/1.5/);
+  assert.ok(args.includes("-an"));
+  assert.ok(args.includes("28"));
 });

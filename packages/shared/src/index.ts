@@ -33,10 +33,11 @@ export const LADDER = [
   { label: "1080p", height: 1080, bandwidth: 4_500_000 },
 ] as const;
 
-export function pickLadder(sourceHeight: number) {
-  const rungs = LADDER.filter((r) => sourceHeight >= r.height);
+export function pickLadder(sourceHeight: number, maxHeight = 1080) {
+  const limit = Math.min(Math.max(2, sourceHeight), maxHeight);
+  const rungs = LADDER.filter((r) => limit >= r.height);
   if (rungs.length > 0) return [...rungs];
-  const h = Math.max(2, Math.floor(sourceHeight / 2) * 2);
+  const h = Math.max(2, Math.floor(limit / 2) * 2);
   return [{ label: `${h}p`, height: h, bandwidth: 400_000 }];
 }
 
@@ -52,7 +53,8 @@ export {
   transformSpecSchema,
   type TransformSpec,
 } from "./transform-spec";
-export { compileTransformArgs, cropForAspect, even } from "./compile-transform";
+export { parseIngestSpec, parseCaptionStyle, ingestSpecSchema, captionStyleSchema, DEFAULT_CAPTION_STYLE, type IngestSpec, type CaptionStyle } from "./ingest-spec";
+export { compileTransformArgs, compileLadderArgs, cropForAspect, even } from "./compile-transform";
 export { parseTimeline, timelineSchema, type Timeline } from "./timeline-spec";
 export { clipOutDuration, compileTimelineArgs } from "./compile-timeline";
 export { hashApiKey, mintApiKey, parseApiKeyToken, verifyApiKeyHash } from "./api-key";
