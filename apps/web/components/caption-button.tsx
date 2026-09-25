@@ -3,7 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export function CaptionButton({ assetId }: { assetId: string }) {
+export function CaptionButton({
+  assetId,
+  hasCaptions = false,
+}: {
+  assetId: string;
+  hasCaptions?: boolean;
+}) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +31,7 @@ export function CaptionButton({ assetId }: { assetId: string }) {
   return (
     <p>
       <button className="btn-ghost" type="button" disabled={pending} onClick={() => void onClick()}>
-        {pending ? "Starting…" : "Generate captions"}
+        {pending ? "Starting…" : hasCaptions ? "Regenerate captions" : "Generate captions"}
       </button>
       {error ? <span className="form-error"> {error}</span> : null}
     </p>
